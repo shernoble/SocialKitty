@@ -6,17 +6,33 @@ import {Form,FormControl,FormField,FormItem,FormLabel,FormMessage,} from "@/comp
 import { Input } from "@/components/ui/input"
 import { SignUpValidation } from '@/lib/validation'
 import { Loader } from "lucide-react"
-import { Link } from "react-router-dom"
-import { CreateNewUser } from "@/lib/appwrite/api"
+import { Link, useNavigate } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
+import { useCreateUserAccount, useSignInAccount} from "@/lib/react-query/queriesAndMutations"
+import { useUserContext } from "@/context/AuthContext"
 
 
 
 
 const SignUpForm = () => {
-    const { toast } = useToast()
-    const isLoading=false;
-    // 1. Define your form.
+    const { toast } = useToast();
+    const {checkAuthUser, isLoading : isUserLoading} = useUserContext();
+    const navigate=useNavigate();
+
+    // Queries fetch and cache data from a server (GET requests).
+    // Mutations send data to a server to modify existing data or create new data (POST, PUT, PATCH, DELETE requests).
+
+    // mutateAsync is a mutation hook from React Query. 
+    // It allows you to trigger an API call and automatically manage its state (loading, success, or error).
+
+    // isLoading helps indicate whether the mutation (API request) is in progress, 
+    // and you can use this to show a loading spinner while waiting for the API response.
+
+    const {mutateAsync : CreateNewUser, isPending: isCreatingUser} = useCreateUserAccount();
+    const {mutateAsync: signInUser, isPending: isSigningIn} = useSignInAccount();
+    
+    
+    // form validation using zod resolver
     const form = useForm<z.infer<typeof SignUpValidation>>({
         resolver: zodResolver(SignUpValidation),
         defaultValues: {
@@ -37,6 +53,32 @@ const SignUpForm = () => {
             return toast({
                 title: "Sign Up failed. Please try again."
             })
+        }
+
+        // once user is created, sign in the user and create a session
+
+        const session= await signInUser(
+            {
+                email:values.email,
+                password:values.password,
+            });
+
+        if(!session){
+            return toast({
+                title: "Sign In failed. Please try again."
+            })
+        }
+
+        const isLoggedIn= await checkAuthUser(); 
+
+        if(isLoggedIn)
+        {
+            form.reset();
+
+            navigate('/');
+        }
+        else{
+            return toast({title:"Sign up failed. Please try again."});
         }
     }
     
@@ -105,7 +147,7 @@ const SignUpForm = () => {
                         )}
                     />
                     <Button type="submit" className="shad-button_primary">
-                        {isLoading? (<div className="flex-center gap-2"><Loader/> Loading...</div>):(<div>Signup</div>)}
+                        {isCreatingUser? (<div className="flex-center gap-2"><Loader/> Loading...</div>):(<div>Signup</div>)}
                     </Button>
                     <p className="text-small-regular text-light-2 text-center mt-2">
                     Already have an account?
@@ -122,4 +164,4 @@ const SignUpForm = () => {
         )
 }
 
-export default SignUpForm
+export default SignUpForm;

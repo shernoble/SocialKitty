@@ -5,62 +5,127 @@ import { Button } from "@/components/ui/button"
 import {Form,FormControl,FormField,FormItem,FormLabel,FormMessage,} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { SignInValidation } from '@/lib/validation'
-
+import { Loader } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { useToast } from "@/hooks/use-toast"
+import {useSignInAccount} from "@/lib/react-query/queriesAndMutations"
+import { useUserContext } from "@/context/AuthContext"
 
 
 
 
 const SignInForm = () => {
+    const { toast } = useToast();
+    const {checkAuthUser, isLoading : isUserLoading} = useUserContext();
+    const navigate=useNavigate();
 
-    // 1. Define your form.
+    // Queries fetch and cache data from a server (GET requests).
+    // Mutations send data to a server to modify existing data or create new data (POST, PUT, PATCH, DELETE requests).
+
+    // mutateAsync is a mutation hook from React Query. 
+    // It allows you to trigger an API call and automatically manage its state (loading, success, or error).
+
+    // isLoading helps indicate whether the mutation (API request) is in progress, 
+    // and you can use this to show a loading spinner while waiting for the API response.
+
+    const {mutateAsync: signInUser, isPending} = useSignInAccount();
+    
+    
+    // form validation using zod resolver
     const form = useForm<z.infer<typeof SignInValidation>>({
         resolver: zodResolver(SignInValidation),
         defaultValues: {
-        username: "",
+        email:"",
         password:"",
         },
     })
 
     // 2. Define a submit handler.
-    function onSubmit(values: z.infer<typeof SignInValidation>) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log(values)
+    async function onSubmit(values: z.infer<typeof SignInValidation>) {
+        console.log("url : "+import.meta.env.VITE_APPWRITE_URL);
+
+
+        // once user is created, sign in the user and create a session
+
+        const session= await signInUser(
+            {
+                email:values.email,
+                password:values.password,
+            });
+
+        if(!session){
+            return toast({
+                title: "Sign In failed. Please try again."
+            })
+        }
+
+        const isLoggedIn= await checkAuthUser(); 
+
+        if(isLoggedIn)
+        {
+            form.reset();
+
+            navigate('/');
+        }
+        else{
+            return toast({title:"Sign in failed. Please try again."});
+        }
     }
     
     return (
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                        <Input type='text' className='shad-input' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                        <Input type='password' className='shad-input' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <Button type="submit" className="shad-button_primary">Submit</Button>
-            </form>
+            <div className="sm:w-420 flex-center flex-col">
+                <img src="/assets/images/logo.svg" alt="logo" />
+
+                <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">
+                Log in to your account
+                </h2>
+                <p className="text-light-3 small-medium md:base-regular mt-2">
+                To use snapgram, Please enter your details
+                </p>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 flex flex-col gap-5 w-full mt-4">
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                                <Input type="email" className="shad-input" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <Input type="password" className="shad-input" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="submit" className="shad-button_primary">
+                        {isUserLoading? (<div className="flex-center gap-2"><Loader/> Loading...</div>):(<div>SignIn</div>)}
+                    </Button>
+                    <p className="text-small-regular text-light-2 text-center mt-2">
+                    Don't have an account?
+                    
+                    <Link
+                    to="/sign-up"
+                    className="text-primary-500 text-small-semibold ml-1">
+                    Register
+                    </Link>
+                </p>
+                </form>
+            </div>
             </Form>
         )
 }
 
-export default SignInForm
+export default SignInForm;

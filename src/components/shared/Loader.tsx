@@ -1,4 +1,4 @@
-const Loader = () => (
+export const Loader = () => (
     <div className="flex-center w-full">
       <img
         src="/assets/icons/loader.svg"
@@ -10,4 +10,3 @@ const Loader = () => (
     </div>
   );
   
-  export default Loader;
