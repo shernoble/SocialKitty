@@ -4,15 +4,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-
-} from "@/components/ui/form"
+import {Form,FormControl,FormField,FormItem,FormLabel,FormMessage,} from "@/components/ui/form"
 import {Button} from "../ui/button";
 import {Input} from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -52,12 +44,14 @@ import { useCreatePost, useUpdatePost } from "@/lib/react-query/queriesAndMutati
     // Handler
     const handleSubmit = async (value: z.infer<typeof PostValidation>) => {
         // ACTION = UPDATE
+        console.log("action = "+ action);
+        
         if (post && action === "Update") {
         const updatedPost = await updatePost({
             ...value,
             postId: post.$id,
-            imageId: post.imageId,
-            imageUrl: post.imageUrl,
+            imageId: post?.imageId,
+            imageUrl: post?.imageUrl,
         });
 
         if (!updatedPost) {
